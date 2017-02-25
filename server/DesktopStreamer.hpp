@@ -66,6 +66,7 @@ public:
 			std::thread(&DesktopStreamer::_capturer, this));
 		_threads.push_back(
 			std::thread(&DesktopStreamer::_acceptor, this));
+		_log("Ready to accept.");
 	}
 
 	// should be atomic
@@ -98,14 +99,13 @@ private:
 		std::clog << msg << std::endl;
 	}
 	void _acceptor(){
-		_log("Ready to accept.");
 		while(_is_open){
 			Sock conn = _app.accept();
 
 			// is app closed?
 			// then break
 			if(conn.val() < 0) break;
-			else _log("New connection accepted");
+			else _log("New connection accepted.");
 
 			std::thread(&DesktopStreamer::_receiver,
 						this, conn).detach();
@@ -114,7 +114,7 @@ private:
 
 			conn.close();
 		}
-		_log("Acceptor down");
+		_log("Acceptor down.");
 	}
 	void _stream_to(Sock& conn){
 		Buff temp;
@@ -174,7 +174,7 @@ private:
 			_out_buff.push(std::move(encoded));
 		}
 		_out_buff.close();
-		_log("Capturer down");
+		_log("Capturer down.");
 	}
 
 	//
