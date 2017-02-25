@@ -4,7 +4,7 @@
 
 namespace DesktopStreamerCmd{
 enum: uint8_t{
-	_UNDF,
+	DISCONNECT,		// client disconnect
 	READY_TO_RCV,	// client ready to receive 
 	_SIZE			// number of commands
 };

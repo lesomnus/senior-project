@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <string>
 #include <array>
+#include <vector>
 #include <functional>
 #include <thread>
 #include <mutex>
@@ -38,8 +39,11 @@ public:
 		_app(io::Domain::INET, io::Type::TCP){
 		_app.addr(address);
 
-		using namespace DesktopStreamerCmd;
-		_cmnds[READY_TO_RCV] = std::bind(&DesktopStreamer::_on_ready, this);
+		// set commands
+		_cmnds[DesktopStreamerCmd::DISCONNECT]
+			= std::bind(&DesktopStreamer::_on_disconnect, this);
+		_cmnds[DesktopStreamerCmd::READY_TO_RCV]
+			= std::bind(&DesktopStreamer::_on_ready, this);
 	};
 	~DesktopStreamer(){
 		_app.close();
@@ -58,8 +62,10 @@ public:
 		std::cout << WSAGetLastError() << std::endl;
 		assert(!_app.is_error() && "_app.bind() error");
 		_app.listen(1);
-		std::thread(&DesktopStreamer::_capturer, this).detach();
-		std::thread(&DesktopStreamer::_acceptor, this).detach();
+		_threads.push_back(
+			std::thread(&DesktopStreamer::_capturer, this));
+		_threads.push_back(
+			std::thread(&DesktopStreamer::_acceptor, this));
 	}
 
 	// should be atomic
@@ -67,9 +73,13 @@ public:
 		if(!_is_open) return;
 		_is_open = false;
 		_app.close();
+		for(auto& thread : _threads)
+			thread.join();
+		_threads.clear();
 	}
 
 private:
+	std::vector<std::thread> _threads;
 	bool _is_open;
 	bool _is_client_ready;
 	Sock _app;
@@ -77,6 +87,7 @@ private:
 	DBuf _out_buff;
 
 	Mtx _log_lock;
+
 	// wait stream until
 	// client ready
 	Mtx _stream_lock;
@@ -118,9 +129,19 @@ private:
 			}
 			temp = std::move(_out_buff.pop());
 			if(_out_buff.is_close()) break;
+			if(temp.size() == 0){
+				std::unique_lock<Mtx> lock(_stream_lock);
+				_is_client_ready = true;
+				continue;
+			}
 
+			// Warning!
+			// The program will not operate nomally
+			// when the file size  exceeds 2^32(=4G) byte.
+			// Yes. It will not happen.
+			// If it happens, increase size of 'size' header.
 			*(reinterpret_cast<uint32_t*>(size.data()))
-				= temp.size();
+				= static_cast<uint32_t>(temp.size());
 
 			if(conn.send(size).is_error()) break;
 			if(conn.send(temp).is_error()) break;
@@ -131,8 +152,15 @@ private:
 		while(_is_open){
 			conn.recv(rcv_buff, 1);
 			const uint8_t cmnd = rcv_buff[0];
-			if(!(cmnd > 0)) break;
+
+			// undefined command
+			if(cmnd >= DesktopStreamerCmd::_SIZE)
+				continue;
+
 			_cmnds[cmnd]();
+
+			if(cmnd == DesktopStreamerCmd::DISCONNECT)
+				break;
 		}
 		_log("Disconnected");
 	}
@@ -152,6 +180,10 @@ private:
 	//
 	// commands
 	//
+	void _on_disconnect(){
+		// release waiter
+		_on_ready();
+	}
 	void _on_ready(){
 		{
 			std::lock_guard<Mtx> lock(_stream_lock);
