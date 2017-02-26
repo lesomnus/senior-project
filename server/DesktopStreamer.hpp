@@ -44,9 +44,7 @@ public:
 		_cmnds[DesktopStreamerCmd::READY_TO_RCV]
 			= std::bind(&DesktopStreamer::_on_ready, this);
 	};
-	~DesktopStreamer(){
-		_app.close();
-	};
+	~DesktopStreamer(){ close(); };
 
 	// should be atomic
 	void open(){
@@ -167,12 +165,12 @@ private:
 		_log("Disconnected");
 	}
 	void _capturer(){
-		Mat desktop;
+		Mat shot;
 		Buff encoded;
 		_out_buff.open();
 		while(_is_open){
-			smns::util::screen::capture(desktop);
-			cv::imencode(".png", desktop, encoded);
+			smns::util::screen::capture(shot);
+			cv::imencode(".png", shot, encoded);
 			_out_buff.push(std::move(encoded));
 		}
 		_out_buff.close();
