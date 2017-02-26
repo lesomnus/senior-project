@@ -15,8 +15,6 @@
 
 #include "DesktopStreamerCmd.h"
 
-using namespace smns;
-
 class DesktopStreamer{
 private:
 	using Str = std::string;
@@ -36,7 +34,8 @@ private:
 public:
 	DesktopStreamer(Addr address)
 		: _is_open(false), _is_client_ready(false),
-		_app(io::Domain::INET, io::Type::TCP){
+		_app(smns::io::Domain::INET,
+			 smns::io::Type::TCP){
 		_app.addr(address);
 
 		// set commands
@@ -54,10 +53,12 @@ public:
 		static bool is_reopen = false;
 		if(_is_open) return;
 		_is_open = true;
-		if(is_reopen)
-			_app = Sock(io::Domain::INET,
-						io::Type::TCP).addr(_app.addr());
-		else is_reopen = true;
+		if(is_reopen){
+			using namespace smns::io;
+			_app = Sock(Domain::INET, Type::TCP)
+				.addr(_app.addr());
+		} else is_reopen = true;
+
 		_app.bind();
 		std::cout << WSAGetLastError() << std::endl;
 		assert(!_app.is_error() && "_app.bind() error");
@@ -74,6 +75,7 @@ public:
 		if(!_is_open) return;
 		_is_open = false;
 		_app.close();
+
 		for(auto& thread : _threads)
 			thread.join();
 		_threads.clear();
