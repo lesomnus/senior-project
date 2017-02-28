@@ -5,7 +5,6 @@
 
 #include <opencv2/opencv.hpp>
 #include <smns/io/sock.hpp>
-#include <smns/util/screen.hpp>
 #include <smns/DoubleBuffer.hpp>
 
 #include "DesktopStreamerCmd.h"
@@ -34,6 +33,7 @@ public:
 		if(_is_open) return;
 		_is_open = true;
 		_conn.connect();
+		_cmd_meta_size();
 		_threads.push_back(
 			std::thread(&DesktopStreamRcver::_receiver, this));
 		_cmd_ready();
@@ -66,7 +66,7 @@ private:
 			_conn.recv(buff, 4);
 			if(_conn.is_error()){};
 			const uint32_t size = *(reinterpret_cast<uint32_t*>(buff.data()));
-			const uint32_t thrsh_ready = size * 0.6; // TODO: make user definable. is it need?
+			const uint32_t thrsh_ready = size * 0.1; // TODO: make user definable. is it need?
 			uint32_t remain = size;
 			bool is_ready = false;
 
@@ -94,18 +94,40 @@ private:
 
 			shot.clear();
 			buff.clear();
-			
+
 			_shot_buff.push(std::move(decoded));
 		}
 	}
-	void _send_cmd(DesktopStreamerCmd::cmd cmd){
-		static std::vector<uint8_t> buff;
+	void _cmd_(DesktopStreamerCmd::cmd cmd,
+			   const Buff& data = Buff()){
+		static Buff buff;
 		buff.push_back(static_cast<uint8_t>(cmd));
+
+		if(!data.empty())
+			buff.insert(buff.end(), data.cbegin(), data.cend());
+
 		_conn.send(buff);
 		buff.clear();
 	}
-	void _cmd_ready(){
-		_send_cmd(DesktopStreamerCmd::READY_TO_RCV);
+	void _cmd_ready(){ _cmd_(DesktopStreamerCmd::READY_TO_RCV); }
+	void _cmd_meta_size(){
+		Buff data;
+
+		#if (defined(_WIN32) || defined (_WIN64) || defined(WIN32) || defined(WIN64))
+		// window test env
+		auto w = 640;
+		auto h = 480;
+		#else
+		// TODO: get screen resolution on linux
+		auto w = 0;
+		auto h = 0;
+		#endif
+		uint32_t temp = ((0xFFFF & w) << 16) | (0xFFFF & h);
+
+		for(auto i = 0; i < 4; ++i){
+			data.push_back(*(reinterpret_cast<uint8_t*>(&temp) + i));
+		}
+
+		_cmd_(DesktopStreamerCmd::META_SIZE, data);
 	}
-	// TODO: Size command
 };

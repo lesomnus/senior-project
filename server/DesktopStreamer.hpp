@@ -28,7 +28,7 @@ private:
 	using Buff = smns::io::Buffer;
 	using DBuf = smns::DoubleBuffer<Buff>;
 	using Cmds = std::array<
-		std::function<void(void)>,
+		std::function<void(Sock&)>,
 		DesktopStreamerCmd::_SIZE>;
 
 public:
@@ -38,11 +38,16 @@ public:
 			 smns::io::Type::TCP){
 		_app.addr(address);
 
-		// set commands
-		_cmnds[DesktopStreamerCmd::DISCONNECT]
-			= std::bind(&DesktopStreamer::_on_disconnect, this);
-		_cmnds[DesktopStreamerCmd::READY_TO_RCV]
-			= std::bind(&DesktopStreamer::_on_ready, this);
+		{
+			using namespace std::placeholders;
+			// set commands
+			_cmnds[DesktopStreamerCmd::DISCONNECT]
+				= std::bind(&DesktopStreamer::_on_disconnect, this, _1);
+			_cmnds[DesktopStreamerCmd::READY_TO_RCV]
+				= std::bind(&DesktopStreamer::_on_ready, this, _1);
+			_cmnds[DesktopStreamerCmd::META_SIZE]
+				= std::bind(&DesktopStreamer::_on_meta_size, this, _1);
+		}
 	};
 	~DesktopStreamer(){ close(); };
 
@@ -157,7 +162,7 @@ private:
 			if(cmnd >= DesktopStreamerCmd::_SIZE)
 				continue;
 
-			_cmnds[cmnd]();
+			_cmnds[cmnd](conn);
 
 			if(cmnd == DesktopStreamerCmd::DISCONNECT)
 				break;
@@ -170,7 +175,9 @@ private:
 		_out_buff.open();
 		while(_is_open){
 			smns::util::screen::capture(shot);
-			cv::imencode(".png", shot, encoded);
+			cv::imencode(".jpg", shot, encoded, {
+								CV_IMWRITE_JPEG_QUALITY, 80 // quality factor
+			});
 			_out_buff.push(std::move(encoded));
 		}
 		_out_buff.close();
@@ -180,15 +187,37 @@ private:
 	//
 	// commands
 	//
-	void _on_disconnect(){
+	void _on_disconnect(Sock& conn){
 		// release waiter
-		_on_ready();
+		_on_ready(conn);
 	}
-	void _on_ready(){
+	void _on_ready(Sock&){
 		{
 			std::lock_guard<Mtx> lock(_stream_lock);
 			_is_client_ready = true;
 		}
 		_until_client_ready.notify_all();
+	}
+	void _on_meta_size(Sock& conn){
+		static Buff buff;
+		static auto divide = [](auto lh, auto rh){
+			return static_cast<float>(lh)
+				/ static_cast<float>(rh);
+		};
+		conn.recv(buff, 4);
+		const auto data = *(reinterpret_cast<uint32_t*>(buff.data()));
+		const auto src_s = smns::util::screen::src_size();
+
+		const auto src_w = src_s.right;
+		const auto src_h = src_s.bottom;
+		const auto dst_w = data >> 16;
+		const auto dst_h = data & 0xFFFF;
+
+		const auto w_ratio = divide(dst_w, src_w);
+		const auto h_ratio = divide(dst_h, src_h);
+
+		if(w_ratio > 1 && h_ratio > 1) return;
+
+		smns::util::screen::resize(std::min(w_ratio, h_ratio));
 	}
 };
