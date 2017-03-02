@@ -34,6 +34,7 @@ private:
 public:
 	DesktopStreamer(Addr address)
 		: _is_open(false), _is_client_ready(false),
+		_is_connected(false),
 		_app(smns::io::Domain::INET,
 			 smns::io::Type::TCP){
 		_app.addr(address);
@@ -78,7 +79,7 @@ public:
 		if(!_is_open) return;
 		_is_open = false;
 		_app.close();
-
+		_until_client_ready.notify_all();
 		for(auto& thread : _threads)
 			thread.join();
 		_threads.clear();
@@ -87,21 +88,35 @@ public:
 private:
 	std::vector<std::thread> _threads;
 	bool _is_open;
-	bool _is_client_ready;
 	Sock _app;
 	Cmds _cmnds;
 	DBuf _out_buff;
 
+	#ifdef DEBUG
 	Mtx _log_lock;
+	#endif
+
+	// wait capturer unitl
+	// client connected
+	bool _is_connected;
+	Mtx _capture_lock;
+	Cond _until_connected;
 
 	// wait stream until
 	// client ready
+	bool _is_client_ready;
 	Mtx _stream_lock;
 	Cond _until_client_ready;
 
-	void _log(const char* msg){
+	// block callee only
+	void _print(const char msg[], bool do_linefeed = false){
+		std::cout << msg;
+	}
+	void _log(const char msg[]){
+		#ifdef DEBUG
 		std::lock_guard<Mtx> lock(_log_lock);
 		std::clog << msg << std::endl;
+		#endif
 	}
 	void _acceptor(){
 		while(_is_open){
@@ -111,7 +126,7 @@ private:
 			// then break
 			if(conn.val() < 0) break;
 			else _log("New connection accepted.");
-
+			_is_connected = true;
 			std::thread(&DesktopStreamer::_receiver,
 						this, conn).detach();
 			// blocking
@@ -164,8 +179,10 @@ private:
 
 			_cmnds[cmnd](conn);
 
-			if(cmnd == DesktopStreamerCmd::DISCONNECT)
+			if(cmnd == DesktopStreamerCmd::DISCONNECT){
+				_is_connected = false;
 				break;
+			}
 		}
 		_log("Disconnected");
 	}
@@ -174,6 +191,12 @@ private:
 		Buff encoded;
 		_out_buff.open();
 		while(_is_open){
+			if(!_is_connected){
+				std::unique_lock<Mtx> lock(_capture_lock);
+				_until_client_ready.wait(lock, [this]{
+					return _is_connected || !_is_open;
+				});
+			}
 			smns::util::screen::capture(shot);
 			cv::imencode(".jpg", shot, encoded, {
 								CV_IMWRITE_JPEG_QUALITY, 80 // quality factor
