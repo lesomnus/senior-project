@@ -117,6 +117,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Coupler.hpp" />
     <ClInclude Include="DesktopStreamerCmd.h" />
     <ClInclude Include="DesktopStreamRcver.hpp" />
     <ClInclude Include="ImProcessor.hpp" />
