@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <smns/io/sock.hpp>
 #include <smns/DoubleBuffer.hpp>
+#include <smns/Pipe.hpp>
 
 #include "DesktopStreamerCmd.h"
 
@@ -17,9 +18,10 @@ private:
 	using Sock = smns::io::Sock;
 	using Buff = smns::io::Buffer;
 	using DBuf = smns::DoubleBuffer<Mat>;
+	using Pipe = smns::Pipe;
 
 public:
-	DesktopStreamRcver(Addr address)
+	DesktopStreamRcver(Addr& address)
 		:_is_open(false), _chunk_s(256),
 		_conn(smns::io::Domain::INET,
 			  smns::io::Type::TCP){
@@ -42,6 +44,7 @@ public:
 		if(!_is_open) return;
 		_is_open = false;
 
+		_pipe.close();
 		for(auto& thread : _threads)
 			thread.join();
 		_threads.clear();
@@ -49,12 +52,18 @@ public:
 	Mat pop(){
 		return std::move(_shot_buff.pop());
 	}
+
+	template<typename Tistream>
+	void pipe(Tistream& istream){
+		_pipe.connect(_shot_buff, istream);
+	}
 private:
 	std::vector<std::thread> _threads;
 	bool _is_open;
 	Sock _conn;
 	DBuf _shot_buff;
 	uint32_t _chunk_s;
+	Pipe _pipe;
 
 	void _receiver(){
 		Buff shot;

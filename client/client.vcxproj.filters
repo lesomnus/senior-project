@@ -26,5 +26,11 @@
     <ClInclude Include="DesktopStreamerCmd.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="ImProcessor.hpp">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.hpp">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
