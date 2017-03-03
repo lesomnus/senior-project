@@ -72,6 +72,10 @@ private:
 		Mat decoded;
 		_shot_buff.open();
 		while(_is_open){
+			//{ // for 10 fps test
+			//	using namespace std::chrono_literals;
+			//	std::this_thread::sleep_for(100ms);
+			//}
 			_conn.recv(buff, 4);
 			if(_conn.is_error()){};
 			const uint32_t size = *(reinterpret_cast<uint32_t*>(buff.data()));
@@ -124,8 +128,8 @@ private:
 
 		#if (defined(_WIN32) || defined (_WIN64) || defined(WIN32) || defined(WIN64))
 		// window test env
-		auto w = 640;
-		auto h = 480;
+		auto w = 1280;
+		auto h = 800;
 		#else
 		// TODO: get screen resolution on linux
 		auto w = 0;

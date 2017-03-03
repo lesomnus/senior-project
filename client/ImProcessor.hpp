@@ -1,5 +1,5 @@
 #pragma once
-#include <assert.h>
+#include <cassert>
 #include <opencv2/opencv.hpp>
 #include <mutex>
 #include <thread>
@@ -30,11 +30,13 @@ public:
 		}
 		return rst;
 	}
-	void push(Mat& img){ _in_buff.push(img); }
+	void push(const Mat& img){ _in_buff.push(img); }
 	Mat pop(){
 		std::lock_guard<Mtx> guard(_out_lock);
 		return std::move(_out_buff);
 	}
+
+	void operator << (const Mat& img){ push(img); }
 private:
 	Dbuf _in_buff;
 	Mat _out_buff;
