@@ -33,11 +33,23 @@ public:
 			return _buff.push(std::move(img));
 
 		_buff << img;
-		_middle << img;
+		_mid << img;
 	}
 	Mat pop(){
-		//if(!_is_attached)
+		if(!_is_attached)
 			return std::move(_buff.pop());
+
+		std::lock_guard<Mtx> guard(_mid_temp_lock);
+		if(_mid.is_empty()){
+			if(_mid_temp.empty()){
+				return std::move(_buff.pop());
+			} else{
+				return _couple(_buff.pop(), _mid_temp);
+			}
+		} else{
+			_mid_temp = _mid.pop();
+			return _couple(_buff.pop(), _mid_temp);
+		}
 	}
 	void attach(){
 		if(_is_attached) return;
@@ -46,6 +58,11 @@ public:
 	void detach(){
 		if(!_is_attached) return;
 		_is_attached = false;
+
+		{
+			std::lock_guard<Mtx> guard(_mid_temp_lock);
+			_mid_temp.release();
+		}
 	}
 
 	template<typename Tistream>
@@ -59,15 +76,25 @@ public:
 private:
 	bool _is_open;
 	bool _is_attached;
-	ImProcessor _middle;
-	Mat _middle_temp;
+	ImProcessor _mid;
+	Mat _mid_temp;
 	Dbuf _buff;
 	Pipe _pipe;
+
+	Mtx _mid_temp_lock;
 
 	void _open(){
 		if(_is_open) return;
 		_is_open = true;
 
 		_buff.open();
+	}
+
+	Mat _couple(Mat& lh, Mat& rh){
+		auto result = Mat(lh.size(), CV_8UC1, lh.type());
+		result.setTo(cv::Scalar(0, 0, 0));
+		lh.copyTo(result, rh);
+		//cv::bitwise_and(lh, rh, result);
+		return result;
 	}
 };

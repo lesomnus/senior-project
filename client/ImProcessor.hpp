@@ -46,17 +46,17 @@ private:
 	void _proc_body(){
 		while(_in_buff.is_open()){
 			Mat img = _in_buff.pop();
-			Mat result(img.size(), img.type()); // TODO: result will binary
-
-			//
-			// body
-			//
+			if(img.empty()) continue;			Mat mask = Mat::zeros(img.size(), CV_8UC1);
+			cv::ellipse(mask, cv::Point(mask.cols / 2, mask.rows / 2),
+						cv::Size(mask.cols / 2, mask.rows / 2), 0, 0, 360,
+						cv::Scalar(255), CV_FILLED, 8, 0);
 
 
 			{
 				std::lock_guard<Mtx> guard(_out_lock);
-				_out_buff = result;
+				_out_buff = mask;
 			}
+//			Mat result(img.size(), CV_8U); // TODO: result will binary
 		}
 	}
 };
