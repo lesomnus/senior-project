@@ -2,6 +2,7 @@
 #include <cassert>
 #include <vector>
 #include <thread>
+#include <string>
 
 #include <opencv2/opencv.hpp>
 #include <smns/io/sock.hpp>
@@ -13,6 +14,7 @@
 class DesktopStreamRcver{
 private:
 	using Mat = cv::Mat;
+	using Size = cv::Size;
 
 	using Addr = smns::io::Addr;
 	using Sock = smns::io::Sock;
@@ -66,10 +68,17 @@ private:
 	Pipe _pipe;
 
 	void _receiver(){
+		static Mat disp_lost;
 		Buff shot;
 		Buff buff;
 		Mat encoded;
 		Mat decoded;
+		Size last_s = {1280, 800};
+
+		// connection params
+		size_t retry = 0;
+		bool is_lost = false;
+
 		_shot_buff.open();
 		while(_is_open){
 			//{ // for 10 fps test
@@ -77,7 +86,54 @@ private:
 			//	std::this_thread::sleep_for(100ms);
 			//}
 			_conn.recv(buff, 4);
-			if(_conn.is_error()){};
+
+			// handle connection error
+			while(is_lost || _conn.is_error()){
+				{	// reconnect proc
+					using namespace smns::io;
+					_conn = Sock(Domain::INET, Type::TCP)
+						.addr(_conn.addr());
+					_conn.connect();
+
+					// if connection successful
+					if(_conn.val() == 0){
+						_cmd_meta_size();
+						_cmd_ready();
+						_conn.recv(buff, 4);
+						if(_conn.is_error())
+							// connected but
+							// Immediately disconnected
+							continue;
+
+						// OK. It's fine to continue
+						retry = 0;
+						is_lost = false;
+						break;
+					}
+				}
+
+				{	// make inform display proc
+					using namespace cv;
+					std::string msg = "Connection lost(";
+					msg = msg + std::to_string(++retry) + ")";
+
+					if(disp_lost.empty() || disp_lost.size() != last_s){
+						disp_lost = Mat(last_s, CV_8UC3);
+					}
+
+					disp_lost.setTo(Scalar(0, 0, 0));
+					putText(disp_lost, msg, {0, 60}, FONT_HERSHEY_SIMPLEX,
+							1.2, Scalar(255, 255, 255), 2, 4);
+				}
+
+				_shot_buff.push(disp_lost);
+
+				{	// wait for timeout
+					using namespace std::chrono_literals;
+					std::this_thread::sleep_for(500ms);
+				}
+			}
+
 			const uint32_t size = *(reinterpret_cast<uint32_t*>(buff.data()));
 			const uint32_t thrsh_ready = size * 0.1; // TODO: make user definable. is it need?
 			uint32_t remain = size;
@@ -89,7 +145,10 @@ private:
 					? remain : _chunk_s;
 
 				_conn.recv(buff, chunk_s);
-				if(_conn.is_error()){}
+				if(_conn.is_error()){
+					is_lost = true;
+					break;
+				}
 				if(_conn.val() != chunk_s){
 					chunk_s = _conn.val();
 				}
@@ -100,6 +159,11 @@ private:
 				}
 				shot.insert(shot.end(), buff.begin(), buff.end());
 			}
+			if(is_lost){
+				shot.clear();
+				buff.clear();
+				continue;
+			}
 
 			encoded = cv::Mat(1, shot.size(), CV_8UC1, shot.data());
 			decoded = cv::imdecode(encoded, CV_LOAD_IMAGE_COLOR);
@@ -108,6 +172,7 @@ private:
 			shot.clear();
 			buff.clear();
 
+			last_s = decoded.size();
 			_shot_buff.push(std::move(decoded));
 		}
 	}
