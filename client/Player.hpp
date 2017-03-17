@@ -22,7 +22,14 @@ public:
 		putText(img, fps, {0, 28}, FONT_HERSHEY_SIMPLEX,
 				1.2, Scalar(0, 0, 255), 2, 4);
 		imshow(_winname, img);
+		#if  defined(LINUX)
+		waitKey(20);
+		#endif
 	}
+	void push(Mat&& img){
+		return push(img);
+	}
+	void operator << (Mat&& img){ push(img); }
 	void operator << (Mat& img){ push(img); }
 private:
 	Str _winname;

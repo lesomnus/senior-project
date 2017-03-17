@@ -5,7 +5,7 @@
 #include <string>
 
 #include <opencv2/opencv.hpp>
-#include <smns/io/sock.hpp>
+#include <smns/io/Sock.hpp>
 #include <smns/DoubleBuffer.hpp>
 #include <smns/Pipe.hpp>
 
@@ -46,6 +46,7 @@ public:
 		if(!_is_open) return;
 		_is_open = false;
 
+		_shot_buff.close();
 		_pipe.close();
 		for(auto& thread : _threads)
 			thread.join();
@@ -88,7 +89,7 @@ private:
 			_conn.recv(buff, 4);
 
 			// handle connection error
-			while(is_lost || _conn.is_error()){
+			while((is_lost || _conn.is_error()) && _is_open){
 				{	// reconnect proc
 					using namespace smns::io;
 					_conn = Sock(Domain::INET, Type::TCP)
@@ -133,6 +134,7 @@ private:
 					std::this_thread::sleep_for(500ms);
 				}
 			}
+			if(!_is_open) break;
 
 			const uint32_t size = *(reinterpret_cast<uint32_t*>(buff.data()));
 			const uint32_t thrsh_ready = size * 0.1; // TODO: make user definable. is it need?
@@ -196,9 +198,10 @@ private:
 		auto w = 1280;
 		auto h = 800;
 		#else
-		// TODO: get screen resolution on linux
-		auto w = 0;
-		auto h = 0;
+		// <!-- TODO: get screen resolution on linux -->
+		// Fix the size
+		auto w = 640;
+		auto h = 400;
 		#endif
 		uint32_t temp = ((0xFFFF & w) << 16) | (0xFFFF & h);
 

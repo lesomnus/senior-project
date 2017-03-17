@@ -13,7 +13,7 @@ private:
 	using Dbuf = smns::DoubleBuffer<Mat>;
 	using Thread = std::thread;
 public:
-	ImProcessor(){
+	ImProcessor(): _cam(0){
 		_in_buff.open();
 		_proc = Thread(&ImProcessor::_proc_body, this);
 	}
@@ -42,15 +42,20 @@ private:
 	Mat _out_buff;
 	Mtx _out_lock;
 	Thread _proc;
+	cv::VideoCapture _cam;
 
 	void _proc_body(){
 		while(_in_buff.is_open()){
 			Mat img = _in_buff.pop();
-			if(img.empty()) continue;			Mat mask = Mat::zeros(img.size(), CV_8UC1);
-			cv::ellipse(mask, cv::Point(mask.cols / 2, mask.rows / 2),
-						cv::Size(mask.cols / 2, mask.rows / 2), 0, 0, 360,
-						cv::Scalar(255), CV_FILLED, 8, 0);
+			if(img.empty()) continue;
 
+			Mat mask = Mat::zeros(img.size(), CV_8UC1);
+			//cv::ellipse(mask, cv::Point(mask.cols / 2, mask.rows / 2),
+			//			cv::Size(mask.cols / 2, mask.rows / 2), 0, 0, 360,
+			//			cv::Scalar(255), CV_FILLED, 8, 0);
+			Mat shot; _cam >> shot;
+			cv::threshold(shot, mask, 100, 255, mask.type());
+			cv::resize(mask, mask, img.size());
 
 			{
 				std::lock_guard<Mtx> guard(_out_lock);

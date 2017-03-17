@@ -25,8 +25,8 @@ public:
 		if(!_is_open) return;
 		_is_open = false;
 
-		_pipe.close();
 		_buff.close();
+		_pipe.close();
 	}
 	void push(Mat&& img){
 		if(!_is_attached)
@@ -90,6 +90,9 @@ private:
 		_buff.open();
 	}
 
+	Mat _couple(Mat&& lh, Mat& rh){
+		return _couple(lh, rh);
+	}
 	Mat _couple(Mat& lh, Mat& rh){
 		auto result = Mat(lh.size(), CV_8UC1, lh.type());
 		result.setTo(cv::Scalar(0, 0, 0));
