@@ -113,8 +113,7 @@ private:
 		std::cout << msg;
 	}
 	void _log(const char msg[]){
-		#ifdef DEBUG
-		std::lock_guard<Mtx> lock(_log_lock);
+		#ifdef _DEBUG
 		std::clog << msg << std::endl;
 		#endif
 	}
@@ -124,8 +123,10 @@ private:
 
 			// is app closed?
 			// then break
-			if(conn.val() < 0) break;
-			else _log("New connection accepted.");
+			if(conn.val() < 0){
+				_log("Accept Error!!!!!!!");
+				break;
+			} else _log("New connection accepted.");
 			_is_connected = true;
 			std::thread(&DesktopStreamer::_receiver,
 						this, conn).detach();
@@ -133,6 +134,7 @@ private:
 			_stream_to(conn);
 
 			conn.close();
+			_log("Disconnected from acceptor");
 		}
 		_log("Acceptor down.");
 	}
@@ -143,9 +145,16 @@ private:
 			{
 				std::unique_lock<Mtx> lock(_stream_lock);
 				_until_client_ready.wait(lock, [this]{
-					return _is_client_ready;
+					return _is_client_ready || !_is_connected;
 				});
 				_is_client_ready = false;
+			}
+
+			if(_out_buff.is_empty()){
+				if(!_is_connected) break;
+				std::unique_lock<Mtx> lock(_stream_lock);
+				_is_client_ready = true;
+				continue;
 			}
 			temp = std::move(_out_buff.pop());
 			if(_out_buff.is_close()) break;
@@ -171,6 +180,10 @@ private:
 		Buff rcv_buff;
 		while(_is_open){
 			conn.recv(rcv_buff, 1);
+			if(rcv_buff.size() == 0){
+				rcv_buff.push_back(DesktopStreamerCmd::DISCONNECT);
+			}
+
 			const uint8_t cmnd = rcv_buff[0];
 
 			// undefined command
@@ -181,10 +194,11 @@ private:
 
 			if(cmnd == DesktopStreamerCmd::DISCONNECT){
 				_is_connected = false;
+				_on_disconnect(conn);
 				break;
 			}
 		}
-		_log("Disconnected");
+		_log("Disconnected from rcver");
 	}
 	void _capturer(){
 		Mat shot;
@@ -222,6 +236,7 @@ private:
 		_until_client_ready.notify_all();
 	}
 	void _on_meta_size(Sock& conn){
+		_log("META");
 		static Buff buff;
 		static auto divide = [](auto lh, auto rh){
 			return static_cast<float>(lh)
