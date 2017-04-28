@@ -121,6 +121,7 @@
     <ClInclude Include="DesktopStreamerCmd.h" />
     <ClInclude Include="DesktopStreamRcver.hpp" />
     <ClInclude Include="ImProcessor.hpp" />
+    <ClInclude Include="PerspectiveProjector.hpp" />
     <ClInclude Include="Player.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

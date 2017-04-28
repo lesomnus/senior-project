@@ -35,5 +35,8 @@
     <ClInclude Include="Coupler.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="PerspectiveProjector.hpp">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

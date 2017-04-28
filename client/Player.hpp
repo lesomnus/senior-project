@@ -22,7 +22,7 @@ public:
 		putText(img, fps, {0, 28}, FONT_HERSHEY_SIMPLEX,
 				1.2, Scalar(0, 0, 255), 2, 4);
 		imshow(_winname, img);
-		#if  defined(LINUX)
+		#if (defined(LINUX) || defined(__linux__))
 		waitKey(20);
 		#endif
 	}
