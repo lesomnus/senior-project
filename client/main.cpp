@@ -37,20 +37,15 @@ int main(){
 	#elif  (defined(LINUX) || defined(__linux__))
 	cv::namedWindow(TRG_WIN_NAME, CV_WINDOW_AUTOSIZE);
 	cv::setWindowProperty(TRG_WIN_NAME, CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-	std::cout << "asdfqqqqqqq" << std::endl;
 	#endif
 
 	DesktopStreamRcver rcver(app_addr);
 	Coupler coupler;
 	Player player(TRG_WIN_NAME);
 
-	std::cout << "asdf" << std::endl;
 	rcver.open();
-	std::cout << "asdf" << std::endl;
 	rcver.pipe(coupler);
-	std::cout << "asdf" << std::endl;
 	coupler.pipe(player);
-	std::cout << "asdf" << std::endl;
 
 
 
