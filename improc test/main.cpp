@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <opencv2/opencv.hpp>
+#include <smns/util/measure.hpp>
 
 #include "find_projected_area.hpp"
 #include "find_corners.hpp"
@@ -92,7 +93,15 @@ int main(){
 	//
 	// find foreground
 	//
-	Mat foreground = find_foreground(shot, org);
+	Mat foreground;
+
+	std::cout << "start" << std::endl;
+	for(auto i = 0; i < 1; i++)
+		smns::util::omeasure(std::string("test") + std::to_string(i), [&foreground, &shot, &org](){
+		foreground = find_foreground(shot, org);
+	});
+	std::cout << "done" << std::endl;
+	 
 	//normalize(foreground, foreground, 0, 255, cv::NORM_MINMAX);
 	imshow("foreground", foreground);
 

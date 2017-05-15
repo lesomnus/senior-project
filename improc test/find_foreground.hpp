@@ -11,6 +11,7 @@
 //	1	RGB correlation in window
 //	2	Y correlation in window
 //	3	max(R,G,B)
+//	4	Y std diff
 #define METHOD 2
 
 void writeCSV(std::string filename, cv::Mat m){
@@ -26,7 +27,7 @@ cv::Mat find_foreground(const cv::Mat& src,
 	using namespace cv;
 	constexpr bool BGR_BLURRED = true;
 	Mat rst;
-	Mat background = background_;
+	Mat background = background_.clone();
 	auto src_s = src.size();
 	if(BGR_BLURRED){
 		GaussianBlur(background, background, Size(5, 5), 1.5);
@@ -122,7 +123,7 @@ cv::Mat find_foreground(const cv::Mat& src,
 	constexpr unsigned int PAD_Y = WINDOW_H - 1; // padding of Y-axis
 	Rect window(0, 0, WINDOW_W, WINDOW_H);
 	Mat _rst(Size((src_s.width - PAD_X - 1),
-				   src_s.height - PAD_Y - 1), CV_8UC1);
+				  src_s.height - PAD_Y - 1), CV_8UC1);
 
 	auto max_index = [](const Scalar& src){
 		if(src[0] > src[1] && src[0] > src[2]){
@@ -146,6 +147,34 @@ cv::Mat find_foreground(const cv::Mat& src,
 
 	rst = _rst;
 
+	#elif METHOD == 4
+	constexpr unsigned int WINDOW_W = 21;
+	constexpr unsigned int WINDOW_H = 21;
+	constexpr unsigned int WINDOW_N = WINDOW_W * WINDOW_H;
+	constexpr unsigned int PAD_X = WINDOW_W - 1; // padding of X-axis
+	constexpr unsigned int PAD_Y = WINDOW_H - 1; // padding of Y-axis
+	Mat src_ycc; cvtColor(src, src_ycc, CV_BGR2YCrCb);
+	Mat bgr_ycc; cvtColor(background, bgr_ycc, CV_BGR2YCrCb);
+	Rect window(0, 0, WINDOW_W, WINDOW_H);
+	Mat corrl(Size((src_s.width - PAD_X - 1),
+				   src_s.height - PAD_Y - 1), CV_8UC1);
+
+	Mat _src; extractChannel(src_ycc, _src, 0);
+	Mat _bgr; extractChannel(bgr_ycc, _bgr, 0);
+
+	for(auto y = 0; y < src_s.height - PAD_Y; ++y){
+		for(auto x = 0; x < src_s.width - PAD_X; ++x){
+			window.x = x; window.y = y;
+			Mat src_trg = _src(window);
+			Mat bgr_trg = _bgr(window);
+			Scalar src_m, src_std, bgr_m, bgr_std;
+			meanStdDev(src_trg, src_m, src_std);
+			meanStdDev(bgr_trg, bgr_m, bgr_std);
+			corrl.at<uint8_t>(y, x) = std::abs(src_std[0] - bgr_std[0]) * 255;
+		}
+	}
+
+	rst = corrl > 100;
 	#endif
 
 
