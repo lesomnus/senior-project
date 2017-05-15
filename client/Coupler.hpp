@@ -10,6 +10,8 @@
 
 #include "ImProcessor.hpp"
 
+constexpr int VIDEO_DEVICE_INDEX = 0;
+
 class Coupler{
 private:
 	using Mtx = std::mutex;
@@ -18,7 +20,11 @@ private:
 	using Pipe = smns::Pipe;
 	using Thread = std::thread;
 public:
-	Coupler():_is_open(false), _is_attached(false){ _open(); }
+	Coupler():
+		_is_open(false), _is_attached(false),
+		_mid(VIDEO_DEVICE_INDEX){
+		_open();
+	}
 	~Coupler(){ close(); }
 
 	void close(){

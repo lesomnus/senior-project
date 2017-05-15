@@ -96,7 +96,7 @@ int main(){
 	Mat foreground;
 
 	std::cout << "start" << std::endl;
-	for(auto i = 0; i < 1; i++)
+	for(auto i = 0; i < 100; i++)
 		smns::util::omeasure(std::string("test") + std::to_string(i), [&foreground, &shot, &org](){
 		foreground = find_foreground(shot, org);
 	});

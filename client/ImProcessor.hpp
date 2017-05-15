@@ -6,6 +6,9 @@
 
 #include <smns/DoubleBuffer.hpp>
 
+#include "PerspectiveProjector.hpp"
+#include "ForegroundDetector.hpp"
+
 class ImProcessor{
 private:
 	using Mtx = std::mutex;
@@ -13,7 +16,11 @@ private:
 	using Dbuf = smns::DoubleBuffer<Mat>;
 	using Thread = std::thread;
 public:
-	ImProcessor(): _cam(0){
+	ImProcessor(int vdevice_index = 0): _cam(vdevice_index){
+		_back_projector.auto_init(_cam);
+		auto bound_s = _back_projector.bound().size();
+		_foreground_detector.set_size(bound_s);
+
 		_in_buff.open();
 		_proc = Thread(&ImProcessor::_proc_body, this);
 	}
@@ -43,25 +50,23 @@ private:
 	Mtx _out_lock;
 	Thread _proc;
 	cv::VideoCapture _cam;
+	PerspectiveProjector _back_projector;
+	ForegroundDetector _foreground_detector;
 
 	void _proc_body(){
+		using namespace cv;
 		while(_in_buff.is_open()){
 			Mat img = _in_buff.pop();
-			if(img.empty()) continue;
-
-			Mat mask = Mat::zeros(img.size(), CV_8UC1);
-			//cv::ellipse(mask, cv::Point(mask.cols / 2, mask.rows / 2),
-			//			cv::Size(mask.cols / 2, mask.rows / 2), 0, 0, 360,
-			//			cv::Scalar(255), CV_FILLED, 8, 0);
 			Mat shot; _cam >> shot;
-			cv::threshold(shot, mask, 100, 255, mask.type());
-			cv::resize(mask, mask, img.size());
+			Mat projected_area = _back_projector(shot);
+			Mat mask = _foreground_detector(projected_area, img);
+
+			resize(mask, mask, img.size());
 
 			{
 				std::lock_guard<Mtx> guard(_out_lock);
 				_out_buff = mask;
 			}
-//			Mat result(img.size(), CV_8U); // TODO: result will binary
 		}
 	}
 };

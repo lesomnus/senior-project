@@ -5,11 +5,13 @@
 #include <opencv2/opencv.hpp>
 #include <smns/DoubleBuffer.hpp>
 
+#include "PerspectiveProjector.hpp"
 #include "DesktopStreamRcver.hpp"
 #include "Coupler.hpp"
 #include "Player.hpp"
 
-constexpr char		DFT_IP[] = "165.229.90.149";
+
+constexpr char		DFT_IP[] = "127.0.0.1";
 constexpr uint16_t	DFT_PORT = 51220;
 constexpr char		TRG_WIN_NAME[] = "remote desktop";
 
@@ -34,6 +36,7 @@ int main(){
 
 	#if defined(_WIN32)
 	cv::namedWindow(TRG_WIN_NAME, CV_WINDOW_NORMAL);
+	//cvSetWindowProperty(TRG_WIN_NAME, CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
 	#elif  (defined(LINUX) || defined(__linux__))
 	cv::namedWindow(TRG_WIN_NAME, CV_WINDOW_AUTOSIZE);
 	cv::setWindowProperty(TRG_WIN_NAME, CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);

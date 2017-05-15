@@ -8,7 +8,7 @@
 
 #include "DesktopStreamer.hpp"
 
-constexpr char*		DFT_IP = "165.229.90.149";
+constexpr char*		DFT_IP = "127.0.0.1";
 constexpr uint16_t	DFT_PORT = 51220;
 
 void print_help(){
