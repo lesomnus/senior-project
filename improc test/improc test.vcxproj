@@ -152,6 +152,7 @@
     <Image Include="1.png" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="correlation.hpp" />
     <ClInclude Include="find_corners.hpp" />
     <ClInclude Include="find_foreground.hpp" />
     <ClInclude Include="find_projected_area.hpp" />

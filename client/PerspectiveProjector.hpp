@@ -35,12 +35,17 @@ public:
 
 		cap >> shot;
 		cap >> shot;
-		imshow("asdf", shot);
-		waitKey(0);
+		GaussianBlur(shot, shot, Size(3, 3), 0.5);
+		{
+			imshow("asdf", shot);
+			waitKey(0);
+		}
 
 		Mat projected_area = find_projected_area(shot);
-		imshow("projected_area", projected_area);
-		waitKey(0);
+		{
+			imshow("projected_area", projected_area);
+			waitKey(0);
+		}
 		points corners = find_corners(projected_area);	// false corners
 		eval(corners);
 		corners = scale_from_center({
@@ -48,7 +53,7 @@ public:
 			Point(_bound.width, _bound.height)
 		}, 4.0 / 3);
 		for(auto& corner : corners){
-			corner = (*this)(corner);
+			corner = _wrap(corner);
 		}
 		eval(corners);
 
@@ -91,18 +96,7 @@ public:
 
 	// I use backward warpping
 	cv::Point operator()(cv::Point dst){
-		mtrx_t src_pmat(3, 1);
-		mtrx_t dst_pmat(3, 1);
-		double w =
-			_homography(2, 0) * dst.x +
-			_homography(2, 1) * dst.y + 1;
-
-		dst_pmat << dst.x, dst.y, 1;
-		src_pmat = _homography * dst_pmat;
-
-		return cv::Point(
-			int(src_pmat(0, 0) / w),
-			int(src_pmat(1, 0) / w));
+		return _wrap(dst);
 	}
 	cv::Mat operator()(cv::Mat& src){
 		return _wrap(src);
@@ -145,7 +139,7 @@ private:
 		Mat harris;
 		{	// harris corner params
 			constexpr int		max_thresh = 255;
-			constexpr int		blockSize = 3;
+			constexpr int		blockSize = 6;
 			constexpr int		ksize = 3;
 			constexpr double	k = 0.04;
 			cornerHarris(gray, harris, blockSize, ksize, k);
@@ -287,6 +281,21 @@ private:
 		}
 
 		return rst;
+	}
+
+	cv::Point _wrap(const cv::Point dst){
+		mtrx_t src_pmat(3, 1);
+		mtrx_t dst_pmat(3, 1);
+		double w =
+			_homography(2, 0) * dst.x +
+			_homography(2, 1) * dst.y + 1;
+
+		dst_pmat << dst.x, dst.y, 1;
+		src_pmat = _homography * dst_pmat;
+
+		return cv::Point(
+			int(src_pmat(0, 0) / w),
+			int(src_pmat(1, 0) / w));
 	}
 
 	cv::Mat _wrap(const cv::Mat& src){

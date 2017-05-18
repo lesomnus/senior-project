@@ -100,10 +100,9 @@ private:
 		return _couple(lh, rh);
 	}
 	Mat _couple(Mat& lh, Mat& rh){
-		auto result = Mat(lh.size(), CV_8UC1, lh.type());
-		result.setTo(cv::Scalar(0, 0, 0));
+		Mat result;
 		lh.copyTo(result, rh);
-		//cv::bitwise_and(lh, rh, result);
+
 		return result;
 	}
 };

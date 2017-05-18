@@ -1,12 +1,16 @@
 #pragma once
 
+#include <cmath>
 #include <opencv2/opencv.hpp>
 
 class ForegroundDetector{
 public:
 	ForegroundDetector():
 		do_blur_proc(true){
-		set_window(cv::Size(21, 21));
+		using namespace cv;
+		set_window(Size(21, 18));
+		_erod_kernel = getStructuringElement(MORPH_ELLIPSE, Size(8, 8));
+		_dila_kernel = getStructuringElement(MORPH_ELLIPSE, Size(20, 20));
 	};
 
 	// if you have low performance camera... set true...
@@ -16,12 +20,12 @@ public:
 		_window.width = size.width;
 		_window.height = size.height;
 		_window_pad = size - cv::Size(1, 1);
+		_window_spad.width = std::floor(_window_pad.width);
+		_window_spad.height = std::floor(_window_pad.height);
 		_window_area = _window.area();
 	}
 	void set_size(const cv::Size& size){
 		_src_s = size;
-		_ones = cv::Mat(size, CV_8UC1);
-		_ones = cv::Scalar(1);
 	}
 
 	cv::Mat operator() (const cv::Mat& src,
@@ -31,12 +35,12 @@ public:
 
 private:
 	cv::Size	_src_s;
-	cv::Mat		_ones;
 	cv::Mat		_last_mask;
 	cv::Mat		_last_masked_shot;
 
 	cv::Rect	_window;
 	cv::Size2i	_window_pad;
+	cv::Size2i	_window_spad;
 	int			_window_area;
 
 	cv::Mat		_erod_kernel;
@@ -47,9 +51,19 @@ private:
 		using namespace cv;
 		Mat bgr_; resize(bgr, bgr_, _src_s);
 		Mat src_;
-		if(!_last_mask.empty()){
-			src_ = src + _last_masked_shot;
-		} else src_ = src;
+		if(_last_mask.empty()) src_ =src;
+		else{
+			Mat src_reverse_masked;
+			src.copyTo(src_reverse_masked, _last_mask);
+			Mat src_masked = src - src_reverse_masked;
+
+			src_ = src_reverse_masked
+				+ (src_masked * 0.5)
+				+ (_last_masked_shot * 0.5);
+
+			imshow("computed src_", src_);
+			waitKey(1);
+		}
 
 		if(do_blur_proc) GaussianBlur(bgr_, bgr_, Size(5, 5), 1.5);
 
@@ -61,7 +75,7 @@ private:
 			extractChannel(bgr_y, bgr_y, 0);
 		}
 
-		Mat rst(_src_s, CV_8UC1);
+		Mat rst(_src_s, CV_8UC1); rst = Scalar(0xFF);
 		Mat src_trg, bgr_trg;
 		Scalar src_m, src_std, bgr_m, bgr_std;
 		double covar = 0, correl = 0;
@@ -80,20 +94,23 @@ private:
 				covar = (src_trg - src_m).dot(bgr_trg - bgr_m) / _window_area;
 				if(covar == 0) covar = 0.00001;
 				correl = covar / (src_std[0] * bgr_std[0]);
-				rst.at<uint8_t>(y, x) = (correl > 1 ? 1 : correl) * 255;
+				rst.at<uint8_t>(y + _window_pad.height,
+								x + _window_spad.width) = (correl > 1 ? 1 : correl) * 255;
 			}
 		}
 
-		rst = rst < (255 / 6);
+		rst = rst < (255 / 8);
 		erode(rst, rst, _erod_kernel);
 		dilate(rst, rst, _dila_kernel);
+		rst = rst < 1;
 
-		// 마스크 사이즈 맞추기.
-		// 아마도 위에서
-		// src_ = src + _last_masked_shot;
-		// 할때도 똑같은 에러 뜰거임.
 		_last_mask = rst;
-		_last_masked_shot = bgr_(Rect(Point(0, 0), rst.size())).mul(rst);
+		bgr_.copyTo(_last_masked_shot, rst);
+
+		imshow("src", src);
+		imshow("bgr", bgr);
+		imshow("mask", rst);
+		waitKey(33);
 
 		return  rst;
 	}
