@@ -120,6 +120,7 @@
     <ClInclude Include="Coupler.hpp" />
     <ClInclude Include="DesktopStreamerCmd.h" />
     <ClInclude Include="DesktopStreamRcver.hpp" />
+    <ClInclude Include="FaceDetector.hpp" />
     <ClInclude Include="ForegroundDetector.hpp" />
     <ClInclude Include="ImProcessor.hpp" />
     <ClInclude Include="PerspectiveProjector.hpp" />

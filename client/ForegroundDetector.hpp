@@ -8,8 +8,8 @@ public:
 	ForegroundDetector():
 		do_blur_proc(true){
 		using namespace cv;
-		set_window(Size(21, 18));
-		_erod_kernel = getStructuringElement(MORPH_ELLIPSE, Size(8, 8));
+		set_window(Size(16, 8));
+		_erod_kernel = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
 		_dila_kernel = getStructuringElement(MORPH_ELLIPSE, Size(20, 20));
 	};
 
@@ -51,7 +51,8 @@ private:
 		using namespace cv;
 		Mat bgr_; resize(bgr, bgr_, _src_s);
 		Mat src_;
-		if(_last_mask.empty()) src_ =src;
+		// assume no feed-back environment
+		if(true || _last_mask.empty()) src_ = src.clone();
 		else{
 			Mat src_reverse_masked;
 			src.copyTo(src_reverse_masked, _last_mask);
@@ -61,8 +62,6 @@ private:
 				+ (src_masked * 0.5)
 				+ (_last_masked_shot * 0.5);
 
-			imshow("computed src_", src_);
-			waitKey(1);
 		}
 
 		if(do_blur_proc) GaussianBlur(bgr_, bgr_, Size(5, 5), 1.5);
