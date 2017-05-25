@@ -1,6 +1,8 @@
 #pragma once
 #include <array>
 #include <opencv2/opencv.hpp>
+#include <algorithm>
+#include "KinectCapture.hpp"
 
 // based backfoward warpping
 // only project to horizon rectangle
@@ -11,7 +13,7 @@ private:
 	using calc_t = double;
 	using mtrx_t = cv::Mat_<calc_t>;
 public:
-	using elem_t = cv::Vec3b;
+	using elem_t = uint8_t;
 	using points = std::array<cv::Point, 4>;
 
 	PerspectiveProjector(const points& src)
@@ -21,7 +23,7 @@ public:
 	PerspectiveProjector():
 		_homography(3, 3){};
 
-	void auto_init(cv::VideoCapture& cap){
+	void auto_init(KinectColorCapture& cap){
 		using namespace cv;
 		constexpr const char AUTO_INIT_WINDOW_NAME[] = "_pattern";
 
@@ -35,13 +37,15 @@ public:
 
 		cap >> shot;
 		cap >> shot;
-		GaussianBlur(shot, shot, Size(3, 3), 0.5);
 		{
 			imshow("asdf", shot);
 			waitKey(0);
 		}
 
 		Mat projected_area = find_projected_area(shot);
+		//GaussianBlur(projected_area, projected_area, Size(3, 3), 1);
+		erode(projected_area, projected_area, Mat());
+		dilate(projected_area, projected_area, Mat());
 		{
 			imshow("projected_area", projected_area);
 			waitKey(0);
@@ -118,10 +122,10 @@ private:
 		Point to = from;
 
 		for(auto i = 1; i < 4; ++i){
-			from.x = std::min(from.x, src[i].x);
-			from.y = std::min(from.y, src[i].y);
-			to.x = std::max(to.x, src[i].x);
-			to.y = std::max(to.y, src[i].y);
+			from.x = (std::min)(from.x, src[i].x);
+			from.y = (std::min)(from.y, src[i].y);
+			to.x = (std::max)(to.x, src[i].x);
+			to.y = (std::max)(to.y, src[i].y);
 		}
 
 		return Rect(from, to);
@@ -140,7 +144,7 @@ private:
 		{	// harris corner params
 			constexpr int		max_thresh = 255;
 			constexpr int		blockSize = 6;
-			constexpr int		ksize = 3;
+			constexpr int		ksize = 31;
 			constexpr double	k = 0.04;
 			cornerHarris(gray, harris, blockSize, ksize, k);
 		}

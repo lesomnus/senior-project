@@ -38,10 +38,7 @@
     <ClInclude Include="PerspectiveProjector.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ForegroundDetector.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="FaceDetector.hpp">
+    <ClInclude Include="KinectCapture.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

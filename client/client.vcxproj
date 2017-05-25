@@ -63,6 +63,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\kinect.props" />
     <Import Project="..\..\opencvd.props" />
     <Import Project="..\..\smns.props" />
   </ImportGroup>
@@ -70,6 +71,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\opencv.props" />
     <Import Project="..\..\smns.props" />
+    <Import Project="..\..\kinect.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -120,9 +122,8 @@
     <ClInclude Include="Coupler.hpp" />
     <ClInclude Include="DesktopStreamerCmd.h" />
     <ClInclude Include="DesktopStreamRcver.hpp" />
-    <ClInclude Include="FaceDetector.hpp" />
-    <ClInclude Include="ForegroundDetector.hpp" />
     <ClInclude Include="ImProcessor.hpp" />
+    <ClInclude Include="KinectCapture.hpp" />
     <ClInclude Include="PerspectiveProjector.hpp" />
     <ClInclude Include="Player.hpp" />
   </ItemGroup>
