@@ -3,11 +3,12 @@
 #include <opencv2/opencv.hpp>
 #include <mutex>
 #include <thread>
+#include <deque>
 
 #include <smns/DoubleBuffer.hpp>
 
 #include "PerspectiveProjector.hpp"
-#include "ForegroundDetector.hpp"
+#include "FaceDetector.hpp"
 
 class ImProcessor{
 private:
@@ -16,10 +17,12 @@ private:
 	using Dbuf = smns::DoubleBuffer<Mat>;
 	using Thread = std::thread;
 public:
-	ImProcessor(int vdevice_index = 0): _cam(vdevice_index){
+	ImProcessor(int vdevice_index = 0)
+		: _cam(vdevice_index), _miss_count(0){
 		_back_projector.auto_init(_cam);
 		auto bound_s = _back_projector.bound().size();
-		_foreground_detector.set_size(bound_s);
+		_face_detector.set_min_size_ratio(1.0 / 10);
+		_face_detector.set_max_size_ratio(1.0 / 8);
 
 		_in_buff.open();
 		_proc = Thread(&ImProcessor::_proc_body, this);
@@ -51,7 +54,10 @@ private:
 	Thread _proc;
 	cv::VideoCapture _cam;
 	PerspectiveProjector _back_projector;
-	ForegroundDetector _foreground_detector;
+	FaceDetector _face_detector;
+	std::deque<cv::Rect> _face_detected;
+	size_t _miss_count;
+
 
 	void _proc_body(){
 		using namespace cv;
@@ -59,10 +65,42 @@ private:
 			Mat img = _in_buff.pop();
 			Mat shot; _cam >> shot;
 			Mat projected_area = _back_projector(shot);
-			Mat mask = _foreground_detector(projected_area, img);
+			Mat mask(projected_area.size(), CV_8UC1); mask = Scalar(0xFF);
+			Rect trg;
+
+			auto faces = _face_detector(projected_area);
+			if(faces.size() == 0){
+				if(_miss_count++ == 31){
+					_face_detected.clear();
+					_miss_count = 0;
+				}
+			} else for(auto face : faces){
+				_miss_count = 0;
+				const auto qsize = _face_detected.size();
+				if(qsize == 0){
+				} else if(qsize > 15){
+					_face_detected.pop_front();
+				} else{
+					const auto diff = face.x - _face_detected.back().x;
+					face.x += diff;
+				}
+				face.height *= 2;
+				_face_detected.push_back(face);
+			}
+
+			// merge
+			for(auto face : _face_detected){
+				if(trg == Rect()) trg = face;
+				else trg |= face;
+			}
+
+
+			Rect bound(Point(), mask.size());
+			trg &= bound;
+			mask(trg) = Scalar(0);
+
 
 			resize(mask, mask, img.size());
-
 			{
 				std::lock_guard<Mtx> guard(_out_lock);
 				_out_buff = mask;
