@@ -62,13 +62,14 @@ private:
 			Mat projected_area = _back_projector(shot);
 			Mat mask(projected_area.size(), CV_8UC1); mask = Scalar(0xFF);
 
-			imshow("pa", projected_area);
-			waitKey(1);
-			//resize(mask, mask, img.size());
-			/*{
+			// TODO: dinamical thrashold
+			mask -= (projected_area > 50);
+			
+			resize(mask, mask, img.size());
+			{
 				std::lock_guard<Mtx> guard(_out_lock);
 				_out_buff = mask;
-			}*/
+			}
 		}
 	}
 };
