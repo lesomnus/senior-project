@@ -44,6 +44,7 @@ public:
 	~KinectDepthCapture(){
 		delete _rgbWk;
 	}
+	static const cv::Size size;
 
 	cv::Mat read(){
 		using namespace cv;
@@ -68,16 +69,55 @@ public:
 			}
 		}
 
-		Mat rst(KinectCapture::size, CV_8UC1);
+		Mat rst_;
 		cvtColor(Mat(KinectCapture::size,
 					 CV_8UC4, _rgbWk,
 					 Mat::AUTO_STEP),
-				 rst, CV_BGRA2GRAY);
-		flip(rst, rst, 1);
+				 rst_, CV_BGRA2GRAY);
+		flip(rst_, rst_, 1);
+		Mat rst(size, CV_8UC1);
+		rst_(Rect(Point(0, 0), size)).copyTo(rst);
+		rst = _project_to_color_cam(rst);
 		return rst;
 	}
 private:
 	RGBQUAD* _rgbWk;
+	static const cv::Mat_<double> _homor_to_color_cam;
+
+	static cv::Mat _project_to_color_cam(const cv::Mat& src){
+		using namespace cv;
+		using elem_t = uint8_t;
+		Size src_s = src.size();
+		Mat rst(KinectCapture::size, src.type()); rst = Scalar(0);
+		Mat_<double> src_pmat(3, 1);
+		Mat_<double> dst_pmat(3, 1);
+		Point dst_p, src_p;
+		Rect bound(Point(0, 0), rst.size());
+
+		for(auto y = 0; y < src_s.height; ++y){
+			auto pix = rst.ptr<elem_t>(y);
+
+			for(auto x = 0; x < src_s.width; ++x){
+				dst_pmat << x, y, 1;
+				src_pmat = _homor_to_color_cam * dst_pmat;
+
+				double w =
+					_homor_to_color_cam(2, 0) * x +
+					_homor_to_color_cam(2, 1) * y + 1;
+				dst_p = Point(x, y);
+				src_p = Point(
+					int(src_pmat(0, 0) / w - 8),
+					int(src_pmat(1, 0) / w));
+
+				if(!bound.contains(src_p))
+					continue;
+
+				pix[x] = src.at<elem_t>(src_p);
+			}
+		}
+
+		return rst;
+	}
 
 	RGBQUAD _short2quad(USHORT s){
 		USHORT realDepth = (s & 0xfff8) >> 3;
@@ -88,6 +128,14 @@ private:
 		return q;
 	}
 };
+const cv::Size KinectDepthCapture::size = cv::Size(640 - 8, 480);
+const cv::Mat_<double> KinectDepthCapture::_homor_to_color_cam = ([](){
+	cv::Mat_<double> val(3, 3);
+	val <<		1.105214746018476, -0.04681816932036342, -17.41963323570281,
+		0.01183746927917436, 1.054422182952943, -28.25615493416862,
+		3.048218215291311e-05, -0.0001258552938719446, 1;
+	return val;
+})();
 
 class KinectColorCapture: public KinectCapture{
 public:

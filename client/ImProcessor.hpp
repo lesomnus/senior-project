@@ -18,9 +18,7 @@ private:
 	using Thread = std::thread;
 public:
 	ImProcessor(int vdevice_index = 0){
-		_back_projector.auto_init(_color_cap);
-		auto bound_s = _back_projector.bound().size();
-
+		_pre_proc();
 		_in_buff.open();
 		_proc = Thread(&ImProcessor::_proc_body, this);
 	}
@@ -51,19 +49,31 @@ private:
 	Thread _proc;
 	KinectColorCapture _color_cap;
 	KinectDepthCapture _depth_cap;
+	Mat _depth_background;
 	PerspectiveProjector _back_projector;
 
+	void _pre_proc(){
+		//_back_projector.auto_init(_color_cap);
+
+		constexpr auto sample_s = 4;
+		Mat shot; _depth_cap >> shot;
+		_depth_background = shot * (1.0 / sample_s);
+		for(auto i = 0; i < sample_s - 1; ++i)
+			_depth_background += shot * (1.0 / sample_s);
+	}
 
 	void _proc_body(){
 		using namespace cv;
 		while(_in_buff.is_open()){
 			Mat img = _in_buff.pop();
 			Mat shot; _depth_cap >> shot;
+			//imshow("asdf", (shot - _depth_background) > 7);
+			//waitKey(1);
+
 			Mat projected_area = _back_projector(shot);
 			Mat mask(projected_area.size(), CV_8UC1); mask = Scalar(0xFF);
 
-			// TODO: dinamical thrashold
-			mask -= (projected_area > 50);
+			mask -= ((projected_area - _depth_background) > 10);
 			
 			resize(mask, mask, img.size());
 			{
