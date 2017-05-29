@@ -1,12 +1,20 @@
+/**
+* File Name:
+*	client/PerspectiveProjector.hpp
+* Description:
+*	A perspective projector which based on backforward warpping.
+*	Only procject to horizon rectangle.
+*
+* Programmed by Hwang Seung Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/client/PerspectiveProjector.hpp
+*/
+
 #pragma once
 #include <array>
 #include <opencv2/opencv.hpp>
 #include <algorithm>
 #include "KinectCapture.hpp"
-
-// based backfoward warpping
-// only project to horizon rectangle
-// dst points are calculated half of outter of src
 
 class PerspectiveProjector{
 private:
@@ -23,6 +31,17 @@ public:
 	PerspectiveProjector():
 		_homography(3, 3){};
 
+	/**
+	*  Function Name: auto_init
+	*  Input arguments (condition):
+	*	Camera handler.
+	*  Processing in function (in pseudo code style):
+	*	1) Display pattern that features can be found easily.
+	*	2) Find the target area based on found features.
+	*	3) Calculate homography then memory.
+	*  Function Return: 
+	*	None.
+	*/
 	void auto_init(KinectColorCapture& cap){
 		using namespace cv;
 		constexpr const char AUTO_INIT_WINDOW_NAME[] = "_pattern";
@@ -64,6 +83,16 @@ public:
 		destroyWindow(AUTO_INIT_WINDOW_NAME);
 	}
 
+	/**
+	*  Function Name: auto_init
+	*  Input arguments (condition):
+	*	Target four points.
+	*  Processing in function (in pseudo code style):
+	*	1) Set destinated points.
+	*	2) Calculate homography.
+	*  Function Return: 
+	*	None.
+	*/
 	void eval(const points& src){
 		using namespace cv;
 		_bound = _outer_of(src);

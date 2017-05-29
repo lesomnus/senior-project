@@ -1,3 +1,14 @@
+/**
+* File Name:
+*	client/Player.hpp
+* Description:
+*	A player that displays received image and FPS.
+*
+* Programmed by Hwang Seung Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/client/Player.hpp
+*/
+
 #pragma once
 #include <assert.h>
 #include <cmath>
@@ -15,6 +26,16 @@ private:
 public:
 	Player(const char* winname): Player(Str(winname)){}
 	Player(const Str& winname): _winname(winname){}
+
+	/**
+	*  Function Name: push
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Push the data.
+	*  Function Return: 
+	*	None.
+	*/
 	void push(const Mat& img){
 		if(img.empty()) return;
 		Str fps = std::to_string(_get_fps());
@@ -29,6 +50,7 @@ public:
 	void push(Mat&& img){
 		return push(img);
 	}
+	
 	void operator << (Mat&& img){ push(img); }
 	void operator << (Mat& img){ push(img); }
 private:

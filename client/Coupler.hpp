@@ -1,3 +1,16 @@
+/**
+* File Name:
+*	client/Coupler.hpp
+* Description:
+*	A coupler that combines two inputs selectively.
+*	However, one of input is built-in image processor which can be seen "client/ImProcessor.hpp"
+*	So, it combines user-data and built-in image processor output.
+*
+* Programmed by Hwang Seung Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/client/Coupler.hpp
+*/
+
 #pragma once
 #include <cassert>
 #include <iostream>
@@ -27,6 +40,15 @@ public:
 	}
 	~Coupler(){ close(); }
 
+	/**
+	*  Function Name: close
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Close it.
+	*  Function Return: 
+	*	None.
+	*/
 	void close(){
 		if(!_is_open) return;
 		_is_open = false;
@@ -34,6 +56,16 @@ public:
 		_buff.close();
 		_pipe.close();
 	}
+
+	/**
+	*  Function Name: push
+	*  Input arguments (condition):
+	*	Data to be combined.
+	*  Processing in function (in pseudo code style):
+	*	1) Push the data.
+	*  Function Return: 
+	*	None.
+	*/
 	void push(Mat&& img){
 		if(!_is_attached)
 			return _buff.push(std::move(img));
@@ -41,6 +73,17 @@ public:
 		_buff << img;
 		_mid << img;
 	}
+
+	/**
+	*  Function Name: pop
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) If "attached", combine two inputs then return it.
+	*	2) If not, just return input data.
+	*  Function Return: 
+	*	Combined data.
+	*/
 	Mat pop(){
 		if(!_is_attached)
 			return std::move(_buff.pop());
@@ -57,10 +100,30 @@ public:
 			return _couple(_buff.pop(), _mid_temp);
 		}
 	}
+
+	/**
+	*  Function Name: attach
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Attach built-in image processor.
+	*  Function Return: 
+	*	None.
+	*/
 	void attach(){
 		if(_is_attached) return;
 		_is_attached = true;
 	}
+
+	/**
+	*  Function Name: dettach
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Dettach built-in image processor.
+	*  Function Return: 
+	*	None.
+	*/
 	void detach(){
 		if(!_is_attached) return;
 		_is_attached = false;
@@ -71,6 +134,15 @@ public:
 		}
 	}
 
+	/**
+	*  Function Name: pipe
+	*  Input arguments (condition):
+	*	An input stream that receives data.
+	*  Processing in function (in pseudo code style):
+	*	1) Pop the data from the inner-buffer then return it.
+	*  Function Return: 
+	*	Connect between inner-buffer and input.
+	*/
 	template<typename Tistream>
 	void pipe(Tistream& istream){
 		_pipe.connect(*this, istream);

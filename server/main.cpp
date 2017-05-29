@@ -1,9 +1,21 @@
+/**
+* File Name:
+*	server/main.cpp
+* Description:
+*	Main procedure for application.
+*	Setting network configuration and give it to "DesktopStreamer" instance.
+*	Provide open, close and exit command.
+*
+* Programmed by Hwang Seung Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/server/main.cpp
+*/
+
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <string>
-
 #include <smns/io/addr.hpp>
 
 #include "DesktopStreamer.hpp"
@@ -11,6 +23,15 @@
 constexpr char*		DFT_IP = "127.0.0.1";
 constexpr uint16_t	DFT_PORT = 51220;
 
+/**
+*  Function Name: void pirint_help()
+*  Input arguments (condition):
+*	None.
+*  Processing in function (in pseudo code style):
+*	1) Print menu.
+*  Function Return: 
+*	None.
+*/
 void print_help(){
 	using namespace std;
 	auto f = [](const auto& command,

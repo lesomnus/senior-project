@@ -1,3 +1,17 @@
+/**
+* File Name:
+*	client/main.cpp
+* Description:
+*	Main procedure for application.
+*	Setting network configuration and give it to "DesktopStreamRcver" instance.
+*	Initiate "DesktopStreamRcver", "Coupler" and "Player" then pipe them.
+*	Provide on or off the "ImageProcessor" and exit command.
+*
+* Programmed by Hwang Seung Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/client/main.cpp
+*/
+
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <string>
 #include <thread>
@@ -10,11 +24,19 @@
 #include "Coupler.hpp"
 #include "Player.hpp"
 
-
 constexpr char		DFT_IP[] = "127.0.0.1";
 constexpr uint16_t	DFT_PORT = 51220;
 constexpr char		TRG_WIN_NAME[] = "remote desktop";
 
+/**
+*  Function Name: void pirint_help()
+*  Input arguments (condition):
+*	None.
+*  Processing in function (in pseudo code style):
+*	1) Print menu.
+*  Function Return: 
+*	None.
+*/
 void print_help(){
 	using namespace std;
 	auto f = [](const auto& command,

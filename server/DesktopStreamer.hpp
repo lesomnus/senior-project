@@ -1,3 +1,37 @@
+/**
+* File Name:
+*	DesktopStreamer.hpp
+* Description:
+*	Capture desktop screen, stream to connected client.
+*	This streamer accept only client.
+*
+* Programmed by Hwang Seugn Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/server/DesktopStreamer.hpp
+*/
+
+/**
+*  Function Name: DesktopStreamer(Addr)
+*  Input arguments (condition):
+*	1) Addr: Network address to be binded.
+*  Processing in function (in pseudo code style):
+*	1) Bind address to socket.
+*	2) Bind function to command.
+*  Function Return: 
+*	None.
+*/
+
+/**
+*  Function Name: void open()
+*  Input arguments (condition):
+*	None.
+*  Processing in function (in pseudo code style):
+*	1) Listening socket.
+*	2) If client accepted, 
+*  Function Return: 
+*	None.
+*/
+
 #pragma once
 #include <assert.h>
 #include <string>

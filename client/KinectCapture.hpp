@@ -1,3 +1,15 @@
+/**
+* File Name:
+*	client/KinectCapture.hpp
+* Description:
+*	A capturer which capture the RGB or Depth images via Kinect.
+*	Capture the image and tranform to cv::Mat class.
+*
+* Programmed by Hwang Seung Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/client/KinectCapture.hpp
+*/
+
 #pragma once
 #include <opencv2/opencv.hpp>
 #define _WINSOCKAPI_
@@ -15,7 +27,19 @@ public:
 	}
 
 	static const cv::Size size;
+
+	/**
+	*  Function Name: read
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Read image data frome the buffer.
+	*	2) Transform the image data to cv::Mat class then return it.
+	*  Function Return: 
+	*	None.
+	*/
 	virtual cv::Mat read() = 0;
+
 	KinectCapture& operator >> (cv::Mat& rst){
 		rst = read();
 		return *this;
@@ -74,10 +98,9 @@ public:
 					 CV_8UC4, _rgbWk,
 					 Mat::AUTO_STEP),
 				 rst_, CV_BGRA2GRAY);
-		flip(rst_, rst_, 1);
-		Mat rst(size, CV_8UC1);
-		rst_(Rect(Point(0, 0), size)).copyTo(rst);
-		rst = _project_to_color_cam(rst);
+
+		Mat rst = _project_to_color_cam(rst_);
+		flip(rst, rst, 1);
 		return rst;
 	}
 private:
@@ -107,7 +130,7 @@ private:
 				dst_p = Point(x, y);
 				src_p = Point(
 					int(src_pmat(0, 0) / w - 8),
-					int(src_pmat(1, 0) / w));
+					int(src_pmat(1, 0) / w + 10));
 
 				if(!bound.contains(src_p))
 					continue;
@@ -131,7 +154,8 @@ private:
 const cv::Size KinectDepthCapture::size = cv::Size(640 - 8, 480);
 const cv::Mat_<double> KinectDepthCapture::_homor_to_color_cam = ([](){
 	cv::Mat_<double> val(3, 3);
-	val <<		1.105214746018476, -0.04681816932036342, -17.41963323570281,
+	val <<
+		1.105214746018476, -0.04681816932036342, -17.41963323570281,
 		0.01183746927917436, 1.054422182952943, -28.25615493416862,
 		3.048218215291311e-05, -0.0001258552938719446, 1;
 	return val;

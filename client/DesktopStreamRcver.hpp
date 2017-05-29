@@ -1,3 +1,14 @@
+/**
+* File Name:
+*	client/DesktopStreamRcver.hpp
+* Description:
+*	A receiver that receives an image stream transmitted from server.
+*
+* Programmed by Hwang Seung Huyn
+* Check the version control of this file
+* here-> https://github.com/lesomnus/senior-project/commits/master/client/DesktopStreamRcver.hpp
+*/
+
 #pragma once
 #include <cassert>
 #include <vector>
@@ -31,8 +42,43 @@ public:
 	}
 	~DesktopStreamRcver(){ close(); }
 
+	/**
+	*  Function Name: is_open
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	Simple getter.
+	*  Function Return: 
+	*	None.
+	*/
 	bool is_open(){ return _is_open; }
+
+	/**
+	*  Function Name: is_open
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	Simple getter.
+	*  Function Return: 
+	*	None.
+	*/
 	bool is_close(){ return !is_open(); }
+
+	/**
+	*  Function Name: open
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Check if already opened.
+	*	2) If opened, end procedure.
+	*	3) If not, set variable to true to indicate it is open.
+	*	4) Connect to server with pre-entered address.
+	*	5) Send meta data to server.
+	*	6) Run receive thread.
+	*	7) Send ready packet to server.
+	*  Function Return: 
+	*	None.
+	*/
 	void open(){
 		if(_is_open) return;
 		_is_open = true;
@@ -42,6 +88,19 @@ public:
 			std::thread(&DesktopStreamRcver::_receiver, this));
 		_cmd_ready();
 	}
+
+	/**
+	*  Function Name: close
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Check if already closed.
+	*	2) If closed, end procedure.
+	*	3) If not, close buffer and pipe.
+	*	4) Wait threads.
+	*  Function Return: 
+	*	None.
+	*/
 	void close(){
 		if(!_is_open) return;
 		_is_open = false;
@@ -52,14 +111,34 @@ public:
 			thread.join();
 		_threads.clear();
 	}
+
+	/**
+	*  Function Name: pop
+	*  Input arguments (condition):
+	*	None.
+	*  Processing in function (in pseudo code style):
+	*	1) Pop the data from the inner-buffer then return it.
+	*  Function Return: 
+	*	Poped data. The data is image which most recently received from the server.
+	*/
 	Mat pop(){
 		return std::move(_shot_buff.pop());
 	}
 
+	/**
+	*  Function Name: pipe
+	*  Input arguments (condition):
+	*	An input stream that receives data.
+	*  Processing in function (in pseudo code style):
+	*	1) Pop the data from the inner-buffer then return it.
+	*  Function Return: 
+	*	Connect between inner-buffer and input.
+	*/
 	template<typename Tistream>
 	void pipe(Tistream& istream){
 		_pipe.connect(_shot_buff, istream);
 	}
+
 private:
 	std::vector<std::thread> _threads;
 	bool _is_open;
